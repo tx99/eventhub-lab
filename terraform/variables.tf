@@ -34,7 +34,8 @@ variable "key_vault_name" {
 }
 
 variable "flux_repo_url" {
-  description = "https://github.com/tx99/eventhub-lab.git"
+  description = "URL of the Flux Git repository"
+  default     = "https://github.com/tx99/eventhub-lab.git"
 }
 
 variable "flux_repo_branch" {
