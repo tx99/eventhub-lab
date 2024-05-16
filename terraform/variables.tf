@@ -33,7 +33,11 @@ variable "key_vault_name" {
   default     = "eventhub-keyvault"
 }
 
-variable "app_insights_name" {
-  description = "Name of the Application Insights instance"
-  default     = "eventhub-app-insights"
+variable "flux_repo_url" {
+  description = "https://github.com/tx99/eventhub-lab.git"
+}
+
+variable "flux_repo_branch" {
+  description = "Branch of the Flux Git repository"
+  default     = "master"
 }
