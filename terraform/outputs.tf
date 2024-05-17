@@ -1,25 +1,16 @@
-output "aks_cluster_name" {
-  value       = azurerm_kubernetes_cluster.aks_cluster.name
-  description = "The name of the AKS cluster"
+output "eventhub_namespace_name" {
+  value = azurerm_eventhub_namespace.eventhub_namespace.name
 }
 
-output "aks_cluster_resource_group_name" {
-  value       = azurerm_kubernetes_cluster.aks_cluster.resource_group_name
-  description = "The resource group name of the AKS cluster"
+output "aks_name" {
+  value = azurerm_kubernetes_cluster.aks.name
 }
 
-output "aks_cluster_kube_config" {
-  value       = azurerm_kubernetes_cluster.aks_cluster.kube_config_raw
-  description = "The raw kubeconfig for the AKS cluster"
-  sensitive   = true
+output "app_insights_instrumentation_key" {
+  value = azurerm_application_insights.app_insights.instrumentation_key
+  sensitive = true
 }
 
-output "aks_cluster_id" {
-  value       = azurerm_kubernetes_cluster.aks_cluster.id
-  description = "The ID of the AKS cluster"
-}
-
-output "aks_cluster_fqdn" {
-  value       = azurerm_kubernetes_cluster.aks_cluster.fqdn
-  description = "The FQDN of the AKS cluster"
+output "key_vault_id" {
+  value = azurerm_key_vault.keyvault.id
 }

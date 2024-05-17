@@ -1,44 +1,42 @@
+variable "tenant_id" {
+  description = "The tenant ID of your Azure subscription"
+  type        = string
+}
+
 variable "resource_group_name" {
-  description = "Resource group name"
+  description = "The name of the resource group to be created"
+  type        = string
   default     = "eventhub-lab"
 }
 
 variable "location" {
-  description = "Azure region"
-  default     = "northeurope"
-}
-
-variable "cluster_name" {
-  description = "Name of the AKS cluster"
-  default     = "eventhub-aks"
-}
-
-variable "kubernetes_version" {
-  description = "K8s version"
-  default     = "1.29.2"
+  description = "The location of the resources to be created"
+  type        = string
+  default     = "North Europe"
 }
 
 variable "eventhub_namespace_name" {
-  description = "Name of the Event Hubs namespace"
-  default     = "evthubnamespace825"
+  description = "The name of the Event Hub namespace to be created"
+  type        = string
+  default     = "evthubnamespace2344"
 }
 
-variable "eventhub_name" {
-  description = "Name of the Event Hub"
-  default     = "eventhub"
+variable "node_pool_name" {
+  description = "The name of the node pool to be created in AKS"
+  type        = string
+  default     = "system"
 }
 
-variable "key_vault_name" {
-  description = "Name of the Key Vault"
-  default     = "eventhub-keyvault"
+variable "vm_size" {
+  description = "The size of the VMs to be used in the node pool"
+  type        = string
+  default     = "Standard_D2_v2"
 }
 
-variable "flux_repo_url" {
-  description = "URL of the Flux Git repository"
-  default     = "https://github.com/tx99/eventhub-lab.git"
+variable "dns_prefix" {
+  description = "The DNS prefix to use for the AKS cluster"
+  type        = string
+  default     = "aks"
 }
 
-variable "flux_repo_branch" {
-  description = "Branch of the Flux Git repository"
-  default     = "master"
-}
+
