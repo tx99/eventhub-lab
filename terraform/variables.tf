@@ -38,5 +38,3 @@ variable "dns_prefix" {
   type        = string
   default     = "aks"
 }
-
-
