@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bookstore-frontend
+  labels:
+    app: bookstore
+spec:
+  containers:
+  - name: bookstore-frontend
+    image: andrewacr.azurecr.io/bookstore-frontend
+    ports:
+    - containerPort: 5055

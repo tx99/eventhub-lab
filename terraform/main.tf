@@ -143,3 +143,54 @@ resource "azurerm_key_vault_secret" "postgresql_connection_string" {
   value        = local.postgresql_connection_string
   key_vault_id = azurerm_key_vault.keyvault.id
 }
+
+resource "azurerm_kubernetes_cluster_extension" "flux" {
+  name                  = "flux"
+  cluster_id            = azurerm_kubernetes_cluster.aks_cluster.id
+  extension_type        = "microsoft.flux"
+}
+
+resource "azurerm_kubernetes_flux_configuration" "k8s_flux" {
+  name       = "flux-system"
+  cluster_id = azurerm_kubernetes_cluster.aks_cluster.id
+  namespace  = "flux-system"
+
+  git_repository {
+    url             = "https://github.com/tx99/eventhub-lab.git"
+    reference_type  = "branch"
+    reference_value = "main"
+  }
+
+  kustomizations {
+    name                      = "ingress"
+    path                      = "./k8s/ingress"
+    sync_interval_in_seconds  = 120
+    retry_interval_in_seconds = 120
+  }
+
+  kustomizations {
+    name                      = "service-a"
+    path                      = "./k8s/service-a"
+    sync_interval_in_seconds  = 120
+    retry_interval_in_seconds = 120
+  }
+
+  kustomizations {
+    name                      = "service-b"
+    path                      = "./k8s/service-b"
+    sync_interval_in_seconds  = 120
+    retry_interval_in_seconds = 120
+  }
+  kustomizations {
+    name                      = "network-policy"
+    path                      = "./k8s/network-policy"
+    sync_interval_in_seconds  = 120
+    retry_interval_in_seconds = 120
+  }
+
+  scope = "cluster"
+
+  depends_on = [
+    azurerm_kubernetes_cluster_extension.flux
+  ]
+}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Book Store</title>
+</head>
+<body>
+    <h1>Books</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for book in books %}
+            <tr>
+                <td>{{ book.title }}</td>
+                <td>{{ book.author }}</td>
+                <td>
+                    <!-- Update form -->
+                    <form action="{{ url_for('update_book', id=book.id) }}" method="POST">
+                        <input type="text" name="title" value="{{ book.title }}" required>
+                        <input type="text" name="author" value="{{ book.author }}" required>
+                        <button type="submit">Update</button>
+                    </form>
+                    <!-- Delete form -->
+                    <form action="{{ url_for('delete_book', id=book.id) }}" method="POST">
+                        <button type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <h2>Add Book</h2>
+    <form action="{{ url_for('add_book') }}" method="POST">
+        <input type="text" name="title" placeholder="Title" required>
+        <input type="text" name="author" placeholder="Author" required>
+        <button type="submit">Add</button>
+    </form>
+</body>
+</html>

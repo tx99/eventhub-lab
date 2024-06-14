@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Book Store</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <h1>Welcome to the Book Store</h1>
+    <nav>
+        <ul>
+            <li><a href="{{ url_for('home') }}">Home</a></li>
+            <li><a href="{{ url_for('get_books') }}">Books</a></li>
+        </ul>
+    </nav>
+    <div class="content">
+        {% block content %}
+        <p>Book Store application.</p>
+        {% endblock %}
+    </div>
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+</body>
+</html>

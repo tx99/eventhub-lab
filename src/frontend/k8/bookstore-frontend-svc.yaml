@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookstore-frontend-svc
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80 
+    targetPort: 5055 
+    protocol: TCP
+  selector:
+    app: bookstore 
