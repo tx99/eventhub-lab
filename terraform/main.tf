@@ -146,13 +146,13 @@ resource "azurerm_key_vault_secret" "postgresql_connection_string" {
 
 resource "azurerm_kubernetes_cluster_extension" "flux" {
   name                  = "flux"
-  cluster_id            = azurerm_kubernetes_cluster.aks_cluster.id
+  cluster_id            = azurerm_kubernetes_cluster.aks.id
   extension_type        = "microsoft.flux"
 }
 
 resource "azurerm_kubernetes_flux_configuration" "k8s_flux" {
   name       = "flux-system"
-  cluster_id = azurerm_kubernetes_cluster.aks_cluster.id
+  cluster_id = azurerm_kubernetes_cluster.aks.id
   namespace  = "flux-system"
 
   git_repository {
@@ -163,30 +163,18 @@ resource "azurerm_kubernetes_flux_configuration" "k8s_flux" {
 
   kustomizations {
     name                      = "ingress"
-    path                      = "./k8s/ingress"
+    path                      = "./templates/"
     sync_interval_in_seconds  = 120
     retry_interval_in_seconds = 120
   }
 
   kustomizations {
-    name                      = "service-a"
-    path                      = "./k8s/service-a"
+    name                      = "frontend"
+    path                      = "./src/frontend/k8"
     sync_interval_in_seconds  = 120
     retry_interval_in_seconds = 120
   }
 
-  kustomizations {
-    name                      = "service-b"
-    path                      = "./k8s/service-b"
-    sync_interval_in_seconds  = 120
-    retry_interval_in_seconds = 120
-  }
-  kustomizations {
-    name                      = "network-policy"
-    path                      = "./k8s/network-policy"
-    sync_interval_in_seconds  = 120
-    retry_interval_in_seconds = 120
-  }
 
   scope = "cluster"
 
