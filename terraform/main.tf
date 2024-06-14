@@ -158,7 +158,7 @@ resource "azurerm_kubernetes_flux_configuration" "k8s_flux" {
   git_repository {
     url             = "https://github.com/tx99/eventhub-lab.git"
     reference_type  = "branch"
-    reference_value = "main"
+    reference_value = "master"
   }
 
   kustomizations {
