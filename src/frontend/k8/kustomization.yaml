@@ -1,6 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- src/frontend/k8/bookstore-frontend-ingress.yaml
-- src/frontend/k8/bookstore-frontend-svc.yaml
-- src/frontend/k8/frontend.yaml
+- bookstore-frontend-ingress.yaml
+- bookstore-frontend-svc.yaml
+- frontend.yaml
