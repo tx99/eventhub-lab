@@ -180,7 +180,7 @@ resource "azurerm_kubernetes_flux_configuration" "k8s_flux" {
 
   kustomizations {
     name                      = "ingress"
-    path                      = "/templates/"
+    path                      = "k8/templates/"
     sync_interval_in_seconds  = 120
     retry_interval_in_seconds = 120
   }
