@@ -14,4 +14,4 @@ EXPOSE 5055
 
 ENV NAME World
 
-CMD ["python", "frontend.py"]
+CMD ["python3", "frontend.py"]
