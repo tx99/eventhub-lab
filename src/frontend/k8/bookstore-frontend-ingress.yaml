@@ -4,6 +4,7 @@ metadata:
   name: bookstore-ingress
   namespace: bookstore-frontend
 spec:
+  ingressClassName: nginx
   rules:
   - http:
       paths:
