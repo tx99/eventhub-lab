@@ -4,6 +4,9 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 3.107.0" 
     }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+    }
   }
 }
 
@@ -54,6 +57,8 @@ resource "azurerm_key_vault" "keyvault" {
   }
 }
 
+
+
 # EventHub Namespace
 resource "azurerm_eventhub_namespace" "eventhub_namespace" {
   name                = var.eventhub_namespace_name
@@ -92,6 +97,18 @@ resource "azurerm_kubernetes_cluster" "aks" {
     network_plugin = "azure"
     network_policy = "azure"
   }
+}
+
+resource "kubernetes_secret" "key_vault_url" {
+  metadata {
+    name = "key-vault-url"
+  }
+
+  data = {
+    KEY_VAULT_URL = azurerm_key_vault.keyvault.vault_uri
+  }
+
+  depends_on = [azurerm_kubernetes_cluster.aks]
 }
 
 # Application Insights

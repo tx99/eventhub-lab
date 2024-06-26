@@ -11,3 +11,9 @@ spec:
     image: andrewacr.azurecr.io/bookstore-frontend
     ports:
     - containerPort: 5055
+    env:
+    - name: KEY_VAULT_URL
+      valueFrom:
+        secretKeyRef:
+          name: key-vault-url
+          key: KEY_VAULT_URL
