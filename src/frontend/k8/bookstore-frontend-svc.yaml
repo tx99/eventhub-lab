@@ -4,7 +4,7 @@ metadata:
   name: bookstore-frontend-svc
   namespace: bookstore-frontend
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
   - port: 80 
     targetPort: 5055 

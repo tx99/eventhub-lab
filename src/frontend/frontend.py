@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 from azure.keyvault.secrets import SecretClient
 from azure.eventhub import EventHubProducerClient, EventHubConsumerClient, EventData
 import os
@@ -12,38 +12,38 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Azure Key Vault configuration
-key_vault_url = os.environ.get('KEY_VAULT_URL', 'PLACEHOLDER')
+key_vault_url = os.environ.get('KEY_VAULT_URL')
 credential = DefaultAzureCredential()
 secret_client = SecretClient(vault_url=key_vault_url, credential=credential)
 
 def testkv():
     try:
-        # Retrieve EventHub connection string from Key Vault
+        # Retrieve EventHub connection string from Key Vault using workload identity
         eventhub_connection_string = secret_client.get_secret("eventhub-connection-string").value
-        logger.info("Successfully retrieved EventHub connection string from Key Vault")
+        logger.info("Successfully retrieved EventHub connection string from Key Vault using workload identity")
 
-        # Create an EventHub producer client
+        # Create an EventHub producer client using the connection string
         producer = EventHubProducerClient.from_connection_string(eventhub_connection_string)
         
         # Send a test message
         with producer:
             event_data_batch = producer.create_batch()
-            event_data_batch.add(EventData('Test message from Flask app'))
+            event_data_batch.add(EventData('Test message from Flask app using workload identity for Key Vault access'))
             producer.send_batch(event_data_batch)
         logger.info("Successfully sent a test message to EventHub")
 
-        # Create an EventHub consumer client
+        # Create an EventHub consumer client using the connection string
         consumer = EventHubConsumerClient.from_connection_string(
             eventhub_connection_string,
             consumer_group="$Default",
-            partition_id="0"  # You might want to adjust this based on your EventHub configuration
+            partition_id="0"  
         )
 
         # Read the message back
         with consumer:
             for event in consumer.receive(max_batch_size=1, max_wait_time=5):
                 logger.info(f"Received message from EventHub: {event.body_as_str()}")
-                break  # Exit after receiving one message
+                break 
 
         logger.info("EventHub connection test completed successfully")
     except Exception as e:

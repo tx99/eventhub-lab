@@ -8,7 +8,7 @@ COPY templates /app/templates
 COPY static /app/static
 
 RUN apt update && apt install python3 python3-pip -y
-RUN pip install --no-cache-dir flask azure-identity azure-keyvault-secrets --break-system-packages
+RUN pip install --no-cache-dir flask azure-identity azure-keyvault-secrets azure-eventhub --break-system-packages
 
 EXPOSE 5055
 

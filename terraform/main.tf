@@ -34,30 +34,8 @@ resource "azurerm_key_vault" "keyvault" {
   tenant_id           = data.azurerm_client_config.current.tenant_id
   sku_name            = "standard"
 
-  access_policy {
-    tenant_id = data.azurerm_client_config.current.tenant_id
-    object_id = data.azurerm_client_config.current.object_id
-
-    key_permissions = [
-      "Get",
-    ]
-
-    secret_permissions = [
-      "Set",
-    ]
-  }
-
-  access_policy {
-    tenant_id = data.azurerm_client_config.current.tenant_id
-    object_id = data.azurerm_client_config.current.object_id
-
-    secret_permissions = [
-      "Get", "List", "Set", "Delete", "Purge"
-    ]
-  }
+  enable_rbac_authorization = true
 }
-
-
 
 # EventHub Namespace
 resource "azurerm_eventhub_namespace" "eventhub_namespace" {
@@ -92,20 +70,48 @@ resource "azurerm_kubernetes_cluster" "aks" {
     type = "SystemAssigned"
   }
 
-
   network_profile {
     network_plugin = "azure"
     network_policy = "azure"
   }
+
+  oidc_issuer_enabled       = true
+  workload_identity_enabled = true
 }
 
-resource "kubernetes_secret" "key_vault_url" {
+# User-assigned Managed Identity for Workload Identity
+resource "azurerm_user_assigned_identity" "workload_identity" {
+  name                = "${var.resource_group_name}-workload-identity"
+  resource_group_name = azurerm_resource_group.eventhub_resource_group.name
+  location            = azurerm_resource_group.eventhub_resource_group.location
+}
+
+# Role assignment for the Managed Identity to access Key Vault
+resource "azurerm_role_assignment" "workload_identity_key_vault" {
+  scope                = azurerm_key_vault.keyvault.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_user_assigned_identity.workload_identity.principal_id
+}
+
+# Federated Identity Credential
+resource "azurerm_federated_identity_credential" "aks_federated_identity" {
+  name                = "${var.resource_group_name}-federated-identity"
+  resource_group_name = azurerm_resource_group.eventhub_resource_group.name
+  audience            = ["api://AzureADTokenExchange"]
+  issuer              = azurerm_kubernetes_cluster.aks.oidc_issuer_url
+  parent_id           = azurerm_user_assigned_identity.workload_identity.id
+  subject             = "system:serviceaccount:default:workload-identity-sa"  # You'll create this service account using Flux
+}
+
+# Storing the Workload Identity client ID in the condig map so flux can deploy the service account later on.
+resource "kubernetes_config_map" "workload_identity_config" {
   metadata {
-    name = "key-vault-url"
+    name = "workload-identity-config"
+    namespace = "flux-system"
   }
 
   data = {
-    KEY_VAULT_URL = azurerm_key_vault.keyvault.vault_uri
+    managed_identity_client_id = azurerm_user_assigned_identity.workload_identity.client_id
   }
 
   depends_on = [azurerm_kubernetes_cluster.aks]
@@ -136,7 +142,7 @@ resource "azurerm_postgresql_server" "booksdb" {
   administrator_login_password = random_password.postgresql_admin_password.result
   sku_name                 = "B_Gen5_1"
   storage_mb               = 5120
-  ssl_enforcement_enabled  = true  # Adjust according to your security requirements
+  ssl_enforcement_enabled  = true
 
   backup_retention_days        = 7
   geo_redundant_backup_enabled = false
@@ -151,7 +157,6 @@ resource "azurerm_postgresql_database" "booksdb" {
   charset             = "UTF8"
   collation           = "en_US.utf8"
 }
-
 
 # Store the PostgreSQL admin username and password in Key Vault
 resource "azurerm_key_vault_secret" "postgresql_admin_username" {
@@ -169,8 +174,6 @@ resource "azurerm_key_vault_secret" "postgresql_admin_password" {
 locals {
   postgresql_connection_string = "Host=${azurerm_postgresql_server.booksdb.fqdn};Database=booksdb;Username=${azurerm_postgresql_server.booksdb.administrator_login}@${azurerm_postgresql_server.booksdb.name};Password=${random_password.postgresql_admin_password.result};Port=5432;"
 }
-
-
 
 resource "azurerm_key_vault_secret" "postgresql_connection_string" {
   name         = "postgresql-connection-string"
@@ -209,9 +212,21 @@ resource "azurerm_kubernetes_flux_configuration" "k8s_flux" {
     retry_interval_in_seconds = 120
   }
 
+    kustomizations {
+    name                      = "workload-identity"
+    path                      = "workload-identity/overlays/multi-namespace"
+    sync_interval_in_seconds  = 120
+    retry_interval_in_seconds = 120 
+    }
+
   scope = "cluster"
 
   depends_on = [
     azurerm_kubernetes_cluster_extension.flux
   ]
+}
+
+# Output the Client ID of the Managed Identity
+output "workload_identity_client_id" {
+  value = azurerm_user_assigned_identity.workload_identity.client_id
 }
