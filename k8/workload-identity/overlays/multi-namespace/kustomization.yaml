@@ -6,20 +6,21 @@ resources:
   - namespaces.yaml
   - workload-identity-resources.yaml
 
-configurations:
-  - kustomizeconfig.yaml
-
 vars:
-  - name: MANAGED_IDENTITY_CLIENT_ID
+  - name: managed_identity_client_id
     objref:
       kind: ConfigMap
-      name: workload-identity-config
+      name: flux-config
       apiVersion: v1
     fieldref:
       fieldpath: data.managed_identity_client_id
+  - name: key_vault_url
+    objref:
+      kind: Secret
+      name: flux-secrets
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.key_vault_url
 
-patches:
-  - path: patch-service-account.yaml
-    target:
-      kind: ServiceAccount
-      name: workload-identity-sa
+configurations:
+  - kustomizeconfig.yaml
