@@ -6,3 +6,7 @@ nameReference:
     path: metadata/name
 varReference:
 - path: metadata/annotations
+- path: data/managed_identity_client_id
+  kind: ConfigMap
+- path: stringData/KEY_VAULT_URL
+  kind: Secret
