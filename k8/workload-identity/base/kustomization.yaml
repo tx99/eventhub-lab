@@ -1,14 +1,16 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
+apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
 kind: Kustomization
-
-resources:
-  - service-account.yaml
-
-vars:
-  - name: MANAGED_IDENTITY_CLIENT_ID
-    objref:
-      kind: ConfigMap
-      name: workload-identity-config
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.managed_identity_client_id
+metadata:
+  name: workload-identity-sa
+  namespace: flux-system
+spec:
+  interval: 10m0s
+  path: ./workload-identity/overlays/multi-namespace
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  postBuild:
+    substituteFrom:
+      - kind: ConfigMap
+        name: workload-identity-config

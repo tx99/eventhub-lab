@@ -1,19 +1,27 @@
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: bookstore-frontend
   namespace: bookstore-frontend
-  labels:
-    app: bookstore
 spec:
-  containers:
-  - name: bookstore-frontend
-    image: andrewacr.azurecr.io/bookstore-frontend
-    ports:
-    - containerPort: 5055
-    env:
-    - name: KEY_VAULT_URL
-      valueFrom:
-        secretKeyRef:
-          name: key-vault-url
-          key: KEY_VAULT_URL
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookstore
+  template:
+    metadata:
+      labels:
+        app: bookstore
+    spec:
+      serviceAccountName: workload-identity-sa
+      containers:
+      - name: bookstore-frontend
+        image: andrewacr.azurecr.io/bookstore-frontend
+        ports:
+        - containerPort: 5055
+        env:
+        - name: KEY_VAULT_URL
+          valueFrom:
+            secretKeyRef:
+              name: key-vault-url
+              key: KEY_VAULT_URL

@@ -3,8 +3,22 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - namespaces.yaml
 
 patches:
-  - path: patch-namespaces.yaml
+  - path: patch-service-account.yaml
+    target:
+      kind: ServiceAccount
+      name: workload-identity-sa
 
-namespace: default
+configurations:
+  - kustomizeconfig.yaml
+
+vars:
+  - name: MANAGED_IDENTITY_CLIENT_ID
+    objref:
+      kind: ConfigMap
+      name: workload-identity-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.managed_identity_client_id

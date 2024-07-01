@@ -1,9 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for
-from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
+from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 from azure.eventhub import EventHubProducerClient, EventHubConsumerClient, EventData
 import os
 import logging
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -13,13 +14,29 @@ logger = logging.getLogger(__name__)
 
 # Azure Key Vault configuration
 key_vault_url = os.environ.get('KEY_VAULT_URL')
-credential = DefaultAzureCredential()
-secret_client = SecretClient(vault_url=key_vault_url, credential=credential)
+if not key_vault_url:
+    logger.error("KEY_VAULT_URL environment variable is not set")
+    raise ValueError("KEY_VAULT_URL is required")
+
+try:
+    credential = DefaultAzureCredential()
+    secret_client = SecretClient(vault_url=key_vault_url, credential=credential)
+    logger.info("Successfully created SecretClient")
+except Exception as e:
+    logger.error(f"Failed to create SecretClient: {str(e)}")
+    raise
+
+def get_eventhub_connection_string():
+    try:
+        return secret_client.get_secret("eventhub-connection-string").value
+    except Exception as e:
+        logger.error(f"Failed to retrieve EventHub connection string: {str(e)}")
+        raise
 
 def testkv():
     try:
         # Retrieve EventHub connection string from Key Vault using workload identity
-        eventhub_connection_string = secret_client.get_secret("eventhub-connection-string").value
+        eventhub_connection_string = get_eventhub_connection_string()
         logger.info("Successfully retrieved EventHub connection string from Key Vault using workload identity")
 
         # Create an EventHub producer client using the connection string
@@ -28,9 +45,10 @@ def testkv():
         # Send a test message
         with producer:
             event_data_batch = producer.create_batch()
-            event_data_batch.add(EventData('Test message from Flask app using workload identity for Key Vault access'))
+            test_message = f'Test message from Flask app using workload identity for Key Vault access at {datetime.now()}'
+            event_data_batch.add(EventData(test_message))
             producer.send_batch(event_data_batch)
-        logger.info("Successfully sent a test message to EventHub")
+        logger.info(f"Successfully sent a test message to EventHub: {test_message}")
 
         # Create an EventHub consumer client using the connection string
         consumer = EventHubConsumerClient.from_connection_string(
@@ -55,6 +73,7 @@ def home():
 
 @app.route('/books', methods=['GET'])
 def get_books():
+    # TODO: Replace this with actual database query
     books = [
         {'id': '1', 'title': 'Book 1', 'author': 'Author 1'},
         {'id': '2', 'title': 'Book 2', 'author': 'Author 2'},
@@ -66,17 +85,31 @@ def get_books():
 def add_book():
     title = request.form['title']
     author = request.form['author']
+    # TODO: Add book to database
+    logger.info(f"Adding new book: {title} by {author}")
     return redirect(url_for('get_books'))
 
 @app.route('/books/update/<id>', methods=['POST'])
 def update_book(id):
     title = request.form['title']
     author = request.form['author']
+    # TODO: Update book in database
+    logger.info(f"Updating book {id}: {title} by {author}")
     return redirect(url_for('get_books'))
 
 @app.route('/books/delete/<id>', methods=['POST'])
 def delete_book(id):
+    # TODO: Delete book from database
+    logger.info(f"Deleting book {id}")
     return redirect(url_for('get_books'))
+
+@app.route('/test-eventhub', methods=['GET'])
+def test_eventhub():
+    try:
+        testkv()
+        return "EventHub test completed successfully. Check logs for details."
+    except Exception as e:
+        return f"EventHub test failed: {str(e)}", 500
 
 if __name__ == '__main__':
     # Run the testkv function before starting the Flask app

@@ -26,6 +26,13 @@ resource "azurerm_resource_group" "eventhub_resource_group" {
   location = var.location
 }
 
+variable "service_principal_object_id" {
+  description = "The object ID of the service principal used for authentication"
+  type        = string
+}
+
+
+
 # Key Vault
 resource "azurerm_key_vault" "keyvault" {
   name                = "${var.resource_group_name}-kv"
@@ -34,8 +41,42 @@ resource "azurerm_key_vault" "keyvault" {
   tenant_id           = data.azurerm_client_config.current.tenant_id
   sku_name            = "standard"
 
-  enable_rbac_authorization = true
+  enable_rbac_authorization = false
+
+  access_policy {
+    tenant_id = data.azurerm_client_config.current.tenant_id
+    object_id = data.azurerm_client_config.current.object_id
+
+    key_permissions = [
+      "Get", "List", "Update", "Create", "Import", "Delete", "Recover", "Backup", "Restore", "Purge",
+    ]
+
+    secret_permissions = [
+      "Get", "List", "Set", "Delete", "Recover", "Backup", "Restore","Purge"
+    ]
+
+    certificate_permissions = [
+      "Get", "List", "Update", "Create", "Import", "Delete", "Recover", "Backup", "Restore", "Purge"
+    ]
+  }
 }
+
+resource "azurerm_key_vault_access_policy" "workload_identity" {
+  key_vault_id = azurerm_key_vault.keyvault.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = azurerm_user_assigned_identity.workload_identity.principal_id
+
+  secret_permissions = [
+    "Get", "List",
+  ]
+}
+
+
+resource "time_sleep" "wait_30_seconds" {
+  #depends_on = [azurerm_role_assignment.key_vault_admin]
+  create_duration = "30s"
+}
+
 
 # EventHub Namespace
 resource "azurerm_eventhub_namespace" "eventhub_namespace" {
@@ -51,6 +92,8 @@ resource "azurerm_key_vault_secret" "eventhub_connection_string" {
   name         = "eventhub-connection-string"
   value        = azurerm_eventhub_namespace.eventhub_namespace.default_primary_connection_string
   key_vault_id = azurerm_key_vault.keyvault.id
+
+   depends_on = [azurerm_key_vault.keyvault]
 }
 
 # AKS Cluster
@@ -86,36 +129,54 @@ resource "azurerm_user_assigned_identity" "workload_identity" {
   location            = azurerm_resource_group.eventhub_resource_group.location
 }
 
-# Role assignment for the Managed Identity to access Key Vault
-resource "azurerm_role_assignment" "workload_identity_key_vault" {
-  scope                = azurerm_key_vault.keyvault.id
-  role_definition_name = "Key Vault Secrets User"
-  principal_id         = azurerm_user_assigned_identity.workload_identity.principal_id
-}
 
-# Federated Identity Credential
+# Federated Identity Credential, add addiotnal namespaces as needed.
 resource "azurerm_federated_identity_credential" "aks_federated_identity" {
-  name                = "${var.resource_group_name}-federated-identity"
+  for_each = toset(["default", "bookstore-frontend", "controller"])
+
+  name                = "${var.resource_group_name}-federated-identity-${each.key}"
   resource_group_name = azurerm_resource_group.eventhub_resource_group.name
   audience            = ["api://AzureADTokenExchange"]
   issuer              = azurerm_kubernetes_cluster.aks.oidc_issuer_url
   parent_id           = azurerm_user_assigned_identity.workload_identity.id
-  subject             = "system:serviceaccount:default:workload-identity-sa"  # You'll create this service account using Flux
+  subject             = "system:serviceaccount:${each.key}:workload-identity-sa"
 }
 
 # Storing the Workload Identity client ID in the condig map so flux can deploy the service account later on.
 resource "kubernetes_config_map" "workload_identity_config" {
+  for_each = toset(["flux-system", "default", "bookstore-frontend", "controller"])
+  
   metadata {
     name = "workload-identity-config"
-    namespace = "flux-system"
+    namespace = each.key
   }
-
   data = {
     managed_identity_client_id = azurerm_user_assigned_identity.workload_identity.client_id
   }
 
+  depends_on = [azurerm_kubernetes_cluster.aks, azurerm_kubernetes_cluster_extension.flux]
+}
+
+resource "kubernetes_secret" "key_vault_url" {
+  metadata {
+    name = "key-vault-url"
+    namespace = "bookstore-frontend"
+  }
+
+  data = {
+    KEY_VAULT_URL = azurerm_key_vault.keyvault.vault_uri
+  }
+
   depends_on = [azurerm_kubernetes_cluster.aks]
 }
+
+provider "kubernetes" {
+  host                   = azurerm_kubernetes_cluster.aks.kube_config.0.host
+  client_certificate     = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.client_certificate)
+  client_key             = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.client_key)
+  cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.cluster_ca_certificate)
+}
+
 
 # Application Insights
 resource "azurerm_application_insights" "app_insights" {
@@ -129,7 +190,11 @@ resource "azurerm_application_insights" "app_insights" {
 resource "random_password" "postgresql_admin_password" {
   length           = 16
   special          = true
-  override_special = "_%+="
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+  min_lower        = 1
+  min_upper        = 1
+  min_numeric      = 1
+  min_special      = 1
 }
 
 # Azure Database for PostgreSQL - Single Server
@@ -163,12 +228,16 @@ resource "azurerm_key_vault_secret" "postgresql_admin_username" {
   name         = "postgresql-admin-username"
   value        = "psqladminun"
   key_vault_id = azurerm_key_vault.keyvault.id
+
+   depends_on = [azurerm_key_vault.keyvault]
 }
 
 resource "azurerm_key_vault_secret" "postgresql_admin_password" {
   name         = "postgresql-admin-password"
   value        = random_password.postgresql_admin_password.result
   key_vault_id = azurerm_key_vault.keyvault.id
+
+   depends_on = [azurerm_key_vault.keyvault]
 }
 
 locals {
@@ -179,6 +248,8 @@ resource "azurerm_key_vault_secret" "postgresql_connection_string" {
   name         = "postgresql-connection-string"
   value        = local.postgresql_connection_string
   key_vault_id = azurerm_key_vault.keyvault.id
+
+   depends_on = [azurerm_key_vault.keyvault]
 }
 
 resource "azurerm_kubernetes_cluster_extension" "flux" {
