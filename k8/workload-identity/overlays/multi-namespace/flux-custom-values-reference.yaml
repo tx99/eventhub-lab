@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flux-custom-values-reference
+data:
+  managed_identity_client_id: ${managed_identity_client_id}
+  key_vault_url: ${key_vault_url}

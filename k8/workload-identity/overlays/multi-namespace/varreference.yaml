@@ -2,3 +2,5 @@ varReference:
 - path: metadata/annotations
 - path: data
 - path: stringData
+- kind: ConfigMap
+  path: data
