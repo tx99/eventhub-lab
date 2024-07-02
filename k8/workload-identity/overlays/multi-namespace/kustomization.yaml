@@ -19,3 +19,6 @@ vars:
       apiVersion: v1
     fieldref:
       fieldpath: data.key_vault_url
+
+configurations:
+  - varreference.yaml
