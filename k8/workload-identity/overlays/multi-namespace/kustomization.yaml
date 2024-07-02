@@ -4,18 +4,24 @@ kind: Kustomization
 resources:
   - service-accounts.yaml
 
+configMapGenerator:
+  - name: workload-identity-vars
+    behavior: merge
+    envs:
+      - flux-custom-values
+
 vars:
-  - name: MANAGED_IDENTITY_CLIENT_ID
+  - name: managed_identity_client_id
     objref:
       kind: ConfigMap
-      name: flux-custom-values
+      name: workload-identity-vars
       apiVersion: v1
     fieldref:
       fieldpath: data.managed_identity_client_id
-  - name: KEY_VAULT_URL
+  - name: key_vault_url
     objref:
       kind: ConfigMap
-      name: flux-custom-values
+      name: workload-identity-vars
       apiVersion: v1
     fieldref:
       fieldpath: data.key_vault_url
