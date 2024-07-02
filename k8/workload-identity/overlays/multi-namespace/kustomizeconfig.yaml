@@ -1,12 +1,4 @@
-nameReference:
-- kind: ServiceAccount
-  version: v1
-  fieldSpecs:
-  - kind: ServiceAccount
-    path: metadata/name
 varReference:
 - path: metadata/annotations
-- path: data/managed_identity_client_id
-  kind: ConfigMap
-- path: stringData/KEY_VAULT_URL
-  kind: Secret
+- path: data
+- path: stringData
