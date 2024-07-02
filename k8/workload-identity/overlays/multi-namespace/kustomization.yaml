@@ -24,7 +24,7 @@ vars:
       name: workload-identity-vars
       apiVersion: v1
     fieldref:
-      fieldpath: key_vault_url
+      fieldpath: data.key_vault_url
 
 configurations:
   - varreference.yaml
