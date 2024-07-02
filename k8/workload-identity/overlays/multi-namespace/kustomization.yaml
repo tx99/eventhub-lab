@@ -14,14 +14,14 @@ vars:
   - name: managed_identity_client_id
     objref:
       kind: ConfigMap
-      name: workload-identity-vars
+      name: flux-custom-values
       apiVersion: v1
     fieldref:
       fieldpath: data.managed_identity_client_id
   - name: key_vault_url
     objref:
       kind: ConfigMap
-      name: workload-identity-vars
+      name: flux-custom-values
       apiVersion: v1
     fieldref:
       fieldpath: data.key_vault_url
