@@ -27,3 +27,8 @@ spec:
             configMapKeyRef:
               name: key-vault-config
               key: KEY_VAULT_URL
+        - name: MANAGED_IDENTITY_CLIENT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: workload-identity-config
+              key: managed_identity_client_id

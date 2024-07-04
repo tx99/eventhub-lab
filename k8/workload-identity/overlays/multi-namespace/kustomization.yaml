@@ -4,7 +4,6 @@ kind: Kustomization
 resources:
   - service-accounts.yaml
   - flux-custom-values-reference.yaml
-  - flux-kustomizations.yaml
 
 configurations:
   - varreference.yaml
