@@ -7,21 +7,3 @@ resources:
 
 configurations:
   - varreference.yaml
-
-# Add ConfigMap references
-configMapGenerator:
-- name: key-vault-config
-  namespace: default
-  behavior: merge
-  envs:
-  - key-vault-config.env
-- name: key-vault-config
-  namespace: bookstore-frontend
-  behavior: merge
-  envs:
-  - key-vault-config.env
-- name: key-vault-config
-  namespace: controller
-  behavior: merge
-  envs:
-  - key-vault-config.env

@@ -12,7 +12,7 @@ spec:
     metadata:
       labels:
         app: bookstore
-        azure.workload.identity/use: "true" 
+        azure.workload.identity/use: "true"
     spec:
       serviceAccountName: workload-identity-sa
       containers:
