@@ -18,6 +18,7 @@ spec:
       containers:
       - name: bookstore-frontend
         image: andrewacr.azurecr.io/bookstore-frontend
+        imagePullPolicy: Always
         ports:
         - containerPort: 5055
         env:
