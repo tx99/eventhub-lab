@@ -1,0 +1,1 @@
+KEY_VAULT_URL=$(key_vault_url)
