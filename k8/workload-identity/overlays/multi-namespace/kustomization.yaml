@@ -7,3 +7,19 @@ resources:
 
 configurations:
   - varreference.yaml
+
+configMapGenerator:
+  - name: workload-identity-config
+    namespace: bookstore-frontend
+    behavior: merge
+    literals:
+      - managed_identity_client_id=$(MANAGED_IDENTITY_CLIENT_ID)
+
+vars:
+  - name: MANAGED_IDENTITY_CLIENT_ID
+    objref:
+      kind: ConfigMap
+      name: flux-custom-values-reference
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.managed_identity_client_id

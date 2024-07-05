@@ -19,6 +19,8 @@ if not key_vault_url:
     raise ValueError("KEY_VAULT_URL is required")
 
 try:
+    managed_identity_client_id = os.environ.get("AZURE_CLIENT_ID")
+    #credential = DefaultAzureCredential(managed_identity_client_id=managed_identity_client_id)
     credential = DefaultAzureCredential()
     secret_client = SecretClient(vault_url=key_vault_url, credential=credential)
     logger.info("Successfully created SecretClient")

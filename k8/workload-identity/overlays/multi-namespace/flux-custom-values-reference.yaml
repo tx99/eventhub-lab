@@ -4,5 +4,5 @@ metadata:
   name: flux-custom-values-reference
   namespace: flux-system
 data:
-  managed_identity_client_id: $(MANAGED_IDENTITY_CLIENT_ID)
+  managed_identity_client_id: ${MANAGED_IDENTITY_CLIENT_ID}
   key_vault_url: ${KEY_VAULT_URL}

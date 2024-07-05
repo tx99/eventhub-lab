@@ -32,3 +32,8 @@ spec:
             configMapKeyRef:
               name: workload-identity-config
               key: managed_identity_client_id
+        - name: AZURE_CLIENT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: workload-identity-config
+              key: managed_identity_client_id
