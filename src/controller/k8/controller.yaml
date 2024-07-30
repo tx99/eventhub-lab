@@ -16,7 +16,7 @@ spec:
       serviceAccountName: workload-identity-sa
       containers:
       - name: controller
-        image: ${ACR_NAME}.azurecr.io/bookstore-controller:latest
+        image: andrewacr.azurecr.io/bookstore-controller:latest
         ports:
         - containerPort: 8089
         env:
