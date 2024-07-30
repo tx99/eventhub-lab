@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller
+  namespace: controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: controller
+  template:
+    metadata:
+      labels:
+        app: controller
+    spec:
+      serviceAccountName: workload-identity-sa
+      containers:
+      - name: controller
+        image: ${ACR_NAME}.azurecr.io/bookstore-controller:latest
+        ports:
+        - containerPort: 8089
+        env:
+        - name: SERVER_PORT
+          value: "8089"
+        - name: KEY_VAULT_URL
+          valueFrom:
+            configMapKeyRef:
+              name: key-vault-config
+              key: KEY_VAULT_URL
+        - name: AZURE_EVENTHUB_NAMESPACE
+          value: "${AZURE_EVENTHUB_NAMESPACE}"
+        - name: AZURE_EVENTHUB_NAME
+          value: "${AZURE_EVENTHUB_NAME}"
+        - name: AZURE_CLIENT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: workload-identity-config
+              key: managed_identity_client_id

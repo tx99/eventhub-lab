@@ -31,6 +31,11 @@ variable "service_principal_object_id" {
   type        = string
 }
 
+variable "kubernetes_namespaces" {
+  description = "List of namespaces to create in the AKS cluster"
+  type        = list(string)
+  default     = ["bookstore-frontend", "controller", "flux-system"]
+}
 
 
 # Key Vault
@@ -72,9 +77,9 @@ resource "azurerm_key_vault_access_policy" "workload_identity" {
 }
 
 
-resource "time_sleep" "wait_30_seconds" {
-  #depends_on = [azurerm_role_assignment.key_vault_admin]
-  create_duration = "30s"
+resource "time_sleep" "wait_60_seconds" {
+  depends_on = [azurerm_key_vault.keyvault]
+  create_duration = "60s"
 }
 
 
@@ -140,34 +145,6 @@ resource "azurerm_federated_identity_credential" "aks_federated_identity" {
   issuer              = azurerm_kubernetes_cluster.aks.oidc_issuer_url
   parent_id           = azurerm_user_assigned_identity.workload_identity.id
   subject             = "system:serviceaccount:${each.key}:workload-identity-sa"
-}
-
-# Storing the Workload Identity client ID in the condig map so flux can deploy the service account later on.
-resource "kubernetes_config_map" "workload_identity_config" {
-  for_each = toset(["flux-system", "default", "bookstore-frontend", "controller"])
-  
-  metadata {
-    name = "workload-identity-config"
-    namespace = each.key
-  }
-  data = {
-    managed_identity_client_id = azurerm_user_assigned_identity.workload_identity.client_id
-  }
-
-  depends_on = [azurerm_kubernetes_cluster.aks, azurerm_kubernetes_cluster_extension.flux]
-}
-
-resource "kubernetes_secret" "key_vault_url" {
-  metadata {
-    name = "key-vault-url"
-    namespace = "bookstore-frontend"
-  }
-
-  data = {
-    KEY_VAULT_URL = azurerm_key_vault.keyvault.vault_uri
-  }
-
-  depends_on = [azurerm_kubernetes_cluster.aks]
 }
 
 provider "kubernetes" {
@@ -256,6 +233,10 @@ resource "azurerm_kubernetes_cluster_extension" "flux" {
   name                  = "flux"
   cluster_id            = azurerm_kubernetes_cluster.aks.id
   extension_type        = "microsoft.flux"
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "azurerm_kubernetes_flux_configuration" "k8s_flux" {
@@ -271,30 +252,166 @@ resource "azurerm_kubernetes_flux_configuration" "k8s_flux" {
 
   kustomizations {
     name                      = "ingress"
-    path                      = "k8/templates/"
+    path                      = "./k8/templates"
     sync_interval_in_seconds  = 120
     retry_interval_in_seconds = 120
   }
 
   kustomizations {
     name                      = "frontend"
-    path                      = "/src/frontend/k8"
+    path                      = "./src/frontend/k8"
     sync_interval_in_seconds  = 120
     retry_interval_in_seconds = 120
   }
 
-    kustomizations {
-    name                      = "workload-identity"
-    path                      = "workload-identity/overlays/multi-namespace"
-    sync_interval_in_seconds  = 120
-    retry_interval_in_seconds = 120 
-    }
+ kustomizations {
+    name = "workload-identity"
+    path = "workload-identity/overlays/multi-namespace"
+    sync_interval_in_seconds = 120
+    retry_interval_in_seconds = 120
+    timeout_in_seconds = 300
+  }
+
+  kustomizations {
+  name = "controller"
+  path = "./src/controller/k8"
+  sync_interval_in_seconds = 120
+  retry_interval_in_seconds = 120
+}
 
   scope = "cluster"
 
   depends_on = [
-    azurerm_kubernetes_cluster_extension.flux
+    kubernetes_namespace.namespaces,
+    azurerm_kubernetes_cluster_extension.flux,
+    kubernetes_secret.flux_secrets,
+    kubernetes_config_map.flux_custom_values
   ]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "kubernetes_namespace" "namespaces" {
+  for_each = toset(var.kubernetes_namespaces)
+
+  metadata {
+    name = each.key
+  }
+
+  depends_on = [azurerm_kubernetes_cluster.aks]
+}
+
+resource "kubernetes_secret" "flux_secrets" {
+  metadata {
+    name      = "flux-secrets"
+    namespace = "flux-system"
+  }
+
+  data = {
+    key_vault_url = base64encode(azurerm_key_vault.keyvault.vault_uri)
+  }
+
+  depends_on = [kubernetes_namespace.namespaces["flux-system"], azurerm_kubernetes_cluster_extension.flux]
+}
+resource "kubernetes_config_map" "flux_custom_values" {
+  metadata {
+    name      = "flux-custom-values"
+    namespace = "flux-system"
+  }
+
+  data = {
+    managed_identity_client_id = azurerm_user_assigned_identity.workload_identity.client_id
+    key_vault_url              = azurerm_key_vault.keyvault.vault_uri
+  }
+
+  depends_on = [kubernetes_namespace.namespaces]
+}
+
+resource "kubernetes_config_map" "workload_identity_config" {
+  for_each = toset(var.kubernetes_namespaces)
+
+  metadata {
+    name      = "workload-identity-config"
+    namespace = each.key
+  }
+
+  data = {
+    managed_identity_client_id = azurerm_user_assigned_identity.workload_identity.client_id
+  }
+
+  depends_on = [kubernetes_namespace.namespaces]
+}
+
+resource "kubernetes_config_map" "key_vault_config" {
+  for_each = toset(var.kubernetes_namespaces)
+
+  metadata {
+    name      = "key-vault-config"
+    namespace = each.key
+  }
+
+  data = {
+    KEY_VAULT_URL = azurerm_key_vault.keyvault.vault_uri
+  }
+
+  depends_on = [kubernetes_namespace.namespaces]
+}
+
+resource "kubernetes_role_binding" "flux_custom_values_reader" {
+  metadata {
+    name      = "flux-custom-values-reader"
+    namespace = "flux-system"
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = "flux-custom-values-reader"
+  }
+  subject {
+    kind      = "ServiceAccount"
+    name      = "default"
+    namespace = "default"
+  }
+  subject {
+    kind      = "ServiceAccount"
+    name      = "default"
+    namespace = "bookstore-frontend"
+  }
+  subject {
+    kind      = "ServiceAccount"
+    name      = "default"
+    namespace = "controller"
+  }
+}
+
+resource "kubernetes_role" "flux_custom_values_reader" {
+  metadata {
+    name      = "flux-custom-values-reader"
+    namespace = "flux-system"
+  }
+
+  rule {
+    api_groups = [""]
+    resources  = ["configmaps"]
+    resource_names = ["flux-custom-values"]
+    verbs      = ["get", "list", "watch"]
+  }
+}
+
+resource "kubernetes_service_account" "workload_identity_sa" {
+  for_each = toset(var.kubernetes_namespaces)
+
+  metadata {
+    name      = "workload-identity-sa"
+    namespace = each.key
+    annotations = {
+      "azure.workload.identity/client-id" = azurerm_user_assigned_identity.workload_identity.client_id
+    }
+  }
+
+  depends_on = [kubernetes_namespace.namespaces]
 }
 
 # Output the Client ID of the Managed Identity

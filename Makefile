@@ -16,11 +16,29 @@ frontend-image-build:
 frontend-image-push: frontend-image-build
 	podman push $(ACR)/$(FRONTEND_IMAGE_NAME):$(FRONTEND_TAG)
 
+# Controller
+define CONTROLLER_IMAGE_NAME
+bookstore-controller
+endef
 
-all: frontend-image-push 
+define CONTROLLER_TAG
+latest
+endef
+
+controller-build:
+	mvn clean package -f ./src/controller/pom.xml --no-transfer-progress
+
+controller-image-build: controller-build
+	podman build -t $(ACR)/$(CONTROLLER_IMAGE_NAME):$(CONTROLLER_TAG) -f ./src/controller/Dockerfile ./src/controller
+
+controller-image-push: controller-image-build
+	podman push $(ACR)/$(CONTROLLER_IMAGE_NAME):$(CONTROLLER_TAG)
+
+all: frontend-image-push controller-image-push
 
 # Targeted builds
 frontend: frontend-image-push
+controller: controller-image-push
 
-# needed to make sure the buid always runs.
-.PHONY: all frontend-image-build frontend-image-push frontend
+# needed to make sure the build always runs.
+.PHONY: all frontend-image-build frontend-image-push frontend controller-build controller-image-build controller-image-push controller
