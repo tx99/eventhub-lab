@@ -24,7 +24,7 @@ variable "eventhub_namespace_name" {
 variable "eventhub_name" {
   description = "The name of the Event Hub to be created"
   type        = string
-  default     = "myeventhub"  # Replace with your desired default name
+  default     = "evthub-bookstore" 
 }
 
 
