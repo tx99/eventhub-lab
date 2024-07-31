@@ -101,6 +101,15 @@ resource "azurerm_key_vault_secret" "eventhub_connection_string" {
    depends_on = [azurerm_key_vault.keyvault]
 }
 
+resource "azurerm_eventhub" "eventhub" {
+  name                = var.eventhub_name
+  namespace_name      = azurerm_eventhub_namespace.eventhub_namespace.name
+  resource_group_name = azurerm_resource_group.eventhub_resource_group.name
+  partition_count     = 2
+  message_retention   = 1
+}
+
+
 # AKS Cluster
 resource "azurerm_kubernetes_cluster" "aks" {
   name                = "${var.resource_group_name}-aks"
@@ -328,6 +337,21 @@ resource "kubernetes_config_map" "flux_custom_values" {
 
   depends_on = [kubernetes_namespace.namespaces]
 }
+
+resource "kubernetes_config_map" "eventhub_config" {
+  metadata {
+    name      = "eventhub-config"
+    namespace = "controller"  
+  }
+
+  data = {
+    AZURE_EVENTHUB_NAMESPACE = var.eventhub_namespace_name
+    AZURE_EVENTHUB_NAME      = var.eventhub_name
+  }
+
+  depends_on = [kubernetes_namespace.namespaces]
+}
+
 
 resource "kubernetes_config_map" "workload_identity_config" {
   for_each = toset(var.kubernetes_namespaces)

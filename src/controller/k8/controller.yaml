@@ -28,9 +28,15 @@ spec:
               name: key-vault-config
               key: KEY_VAULT_URL
         - name: AZURE_EVENTHUB_NAMESPACE
-          value: "${AZURE_EVENTHUB_NAMESPACE}"
+          valueFrom:
+            configMapKeyRef:
+              name: eventhub-config
+              key: AZURE_EVENTHUB_NAMESPACE
         - name: AZURE_EVENTHUB_NAME
-          value: "${AZURE_EVENTHUB_NAME}"
+          valueFrom:
+            configMapKeyRef:
+              name: eventhub-config
+              key: AZURE_EVENTHUB_NAME
         - name: AZURE_CLIENT_ID
           valueFrom:
             configMapKeyRef:

@@ -21,6 +21,13 @@ variable "eventhub_namespace_name" {
   default     = "evthubnamespace2344"
 }
 
+variable "eventhub_name" {
+  description = "The name of the Event Hub to be created"
+  type        = string
+  default     = "myeventhub"  # Replace with your desired default name
+}
+
+
 variable "node_pool_name" {
   description = "The name of the node pool to be created in AKS"
   type        = string
