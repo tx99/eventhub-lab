@@ -275,7 +275,7 @@ resource "azurerm_kubernetes_flux_configuration" "k8s_flux" {
 
  kustomizations {
     name = "workload-identity"
-    path = "workload-identity/overlays/multi-namespace"
+    path = ".k8/workload-identity/overlays/multi-namespace"
     sync_interval_in_seconds = 120
     retry_interval_in_seconds = 120
     timeout_in_seconds = 300
