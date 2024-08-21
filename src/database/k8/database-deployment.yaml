@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database-deployment
+  namespace: db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database
+  template:
+    metadata:
+      labels:
+        app: database
+    spec:
+      serviceAccountName: workload-identity-sa
+      containers:
+      - name: database
+        image: andrewacr.azurecr.io/bookstore-database:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Production"
+        - name: AZURE_EVENTHUB_NAMESPACE
+          valueFrom:
+            configMapKeyRef:
+              name: eventhub-config
+              key: AZURE_EVENTHUB_NAMESPACE
+        - name: AZURE_EVENTHUB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: eventhub-config
+              key: AZURE_EVENTHUB_NAME
+        - name: KEY_VAULT_URL
+          valueFrom:
+            configMapKeyRef:
+              name: key-vault-config
+              key: KEY_VAULT_URL
+        - name: SERVICE_URL
+          value: "http://database-service.db"
+        - name: CONTROLLER_URL
+          value: "http://controller-service.controller"
+        - name: ConnectionStrings__DefaultConnection
+          value: "Data Source=bookstore.db"
+        volumeMounts:
+        - name: sqlite-data
+          mountPath: /app/data
+      volumes:
+      - name: sqlite-data
+        emptyDir: {}
